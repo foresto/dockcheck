@@ -39,7 +39,6 @@ check_dependencies()
     if [ "$when" ]; then
       if [ -z "$depshown" ]; then
         if [ "$targetshown" ]; then echo; fi
-        #echo "$target docker image needs rebuild" \
         echo "$target image needs docker rebuild" \
 	        "to refresh these dependencies:"
       fi

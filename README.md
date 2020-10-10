@@ -21,3 +21,8 @@ Example crontab:
 Caveat: I have only tested this on a small rootless docker instance with a
 handful of simple containers. I might have missed something, and you might
 need to tweak the script to make it work in a different environment.
+
+## Related Work
+
+[Watchtower](https://containrrr.dev/watchtower/introduction/) -
+Automates pulling new images and restarting corresponding containers.

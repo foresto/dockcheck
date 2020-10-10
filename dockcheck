@@ -1,0 +1,77 @@
+#!/bin/sh
+
+DOCKER_HOST=${DOCKER_HOST:=unix:///run/user/$(id -u)/docker.sock}
+export DOCKER_HOST
+
+while getopts "hv" opt; do
+  case $opt in
+    v) verbose=1;;
+    *) echo "usage: $(basename "$0") [-v]"; exit 2;;
+  esac
+done
+shift "$((OPTIND - 1))"
+
+set -e # Exit on unchecked failures
+docker version >/dev/null # Exit if dockerd is unavailable
+
+# Given a docker image name and some dependency image names/tags,
+# pull the dependencies from upstream and print a message if any
+# are newer than the target image.
+#
+# args: <target-name> [<dependency-name>]...
+#
+check_dependencies()
+  {
+  if [ "$#" -eq 0 ]; then return; fi
+  target=$1
+  shift
+
+  [ "$verbose" ] && echo "pulling $target dependencies..." >&2
+
+  unset depshown
+
+  for dep in "$@"; do
+    [ "$verbose" ] && echo "pulling $dep" >&2
+    docker image pull --quiet "$dep" > /dev/null
+
+    when=$(docker image ls --format "{{.CreatedSince}}" \
+	    --filter "since=$target" --filter "reference=$dep")
+    if [ "$when" ]; then
+      if [ -z "$depshown" ]; then
+        if [ "$targetshown" ]; then echo; fi
+        #echo "$target docker image needs rebuild" \
+        echo "$target image needs docker rebuild" \
+	        "to refresh these dependencies:"
+      fi
+      echo "  $dep  (updated $when)"
+      depshown=1
+      targetshown=1
+    fi
+  done
+  }
+
+# Given a docker image name, print its ancestors' tags (one per line)
+print_ancestor_tags()
+  {
+  parent=$(docker image inspect "$1" --format '{{.Parent}}')
+    if [ -z "$parent" ]; then return; fi
+  docker image inspect "$parent" --format '{{join .RepoTags "\n"}}'
+  print_ancestor_tags "$parent"
+  }
+
+# Print image name of each docker container (one per line)
+print_container_images()
+  {
+  docker container ls --format '{{.Image}}' -a | sort | uniq
+  }
+
+for img in $(print_container_images); do
+  # shellcheck disable=SC2046
+  check_dependencies "$img" $(print_ancestor_tags "$img")
+done
+
+if [ "$targetshown" ]; then
+  exit 9
+else
+  [ "$verbose" ] && echo "no updates found" >&2
+fi

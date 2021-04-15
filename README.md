@@ -24,5 +24,10 @@ need to tweak the script to make it work in a different environment.
 
 ## Related Work
 
+[docker-image-update-notification](https://github.com/atanas-mavrov/docker-image-update-notification)
+
+[Diun](https://github.com/crazy-max/diun) -
+Sends notifications of Docker registry changes.
+
 [Watchtower](https://containrrr.dev/watchtower/introduction/) -
 Automates pulling new images and restarting corresponding containers.

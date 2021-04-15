@@ -26,6 +26,8 @@ check_dependencies()
   target=$1
   shift
 
+  if [ "$#" -eq 0 ]; then echo "$target has no dependencies!" >&2; return; fi
+
   [ "$verbose" ] && echo "pulling $target dependencies..." >&2
 
   unset depshown

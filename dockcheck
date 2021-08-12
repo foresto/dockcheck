@@ -26,7 +26,12 @@ check_dependencies()
   target=$1
   shift
 
-  if [ "$#" -eq 0 ]; then echo "$target has no dependencies!" >&2; return; fi
+  if [ "$#" -eq 0 ]; then
+    echo "$target has no tagged dependencies;" \
+      "may need a docker build to refresh them" >&2;
+    flagged_a_target=1
+    return;
+  fi
 
   [ "$verbose" ] && echo "pulling $target dependencies..." >&2
 
@@ -40,13 +45,12 @@ check_dependencies()
 	    --filter "since=$target" --filter "reference=$dep")
     if [ "$when" ]; then
       if [ -z "$depshown" ]; then
-        if [ "$targetshown" ]; then echo; fi
-        echo "$target image needs docker rebuild" \
-	        "to refresh these dependencies:"
+        if [ "$flagged_a_target" ]; then echo; fi
+        echo "$target needs a docker build to refresh dependencies:"
       fi
       echo "  $dep  (updated $when)"
       depshown=1
-      targetshown=1
+      flagged_a_target=1
     fi
   done
   }
@@ -71,7 +75,7 @@ for img in $(print_container_images); do
   check_dependencies "$img" $(print_ancestor_tags "$img")
 done
 
-if [ "$targetshown" ]; then
+if [ "$flagged_a_target" ]; then
   exit 9
 else
   [ "$verbose" ] && echo "no updates found" >&2
